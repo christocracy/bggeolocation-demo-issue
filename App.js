@@ -63,12 +63,20 @@ const App: () => Node = () => {
   const [isMoving, setIsMoving] = React.useState(false);
 
   React.useEffect(() => {
-    BackgroundGeolocation.onLocation((location) => {
+    const onLocation = BackgroundGeolocation.onLocation((location) => {
       console.log('[onLocation] ', location);
     });
 
-    BackgroundGeolocation.onMotionChange((location) => {
+    const onMotionChange = BackgroundGeolocation.onMotionChange((location) => {
       console.log('[onMotionChange] ', location);
+    });
+
+    const onEnabledChange = BackgroundGeolocation.onEnabledChange((enabled) => {
+      console.log('[onEnabledChange] ', enabled);
+    });
+
+    const onActivityChange = BackgroundGeolocation.onActivityChange((event) => {
+      console.log('[onActivityChange] ', event);
     });
 
     BackgroundGeolocation.ready({
@@ -77,7 +85,6 @@ const App: () => Node = () => {
       stopTimeout: 60,
       locationAuthorizationRequest: 'WhenInUse',
       distanceFilter: 0,
-      disableMotionActivityUpdates: true,
       pausesLocationUpdatesAutomatically: false,
       disableStopDetection: true
     }).then((state) => {
@@ -87,25 +94,35 @@ const App: () => Node = () => {
       setIsMoving(state.isMoving);
     });
 
+    return () => {
+      console.info('unsubscribe');
+      onLocation.remove();
+      onMotionChange.remove();
+      onEnabledChange.remove();
+      onActivityChange.remove();
+    }
   }, []);
 
   const backgroundStyle = {
     backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
   };
 
-  const changePace = () => {
+  const onClickChangePace = async () => {
     const nowMoving = !isMoving;
     BackgroundGeolocation.changePace(nowMoving);
     setIsMoving(nowMoving);
   }
 
-  const onToggleEnabled = () => {
+  const onToggleEnabled = async () => {
     const isEnabled = !enabled;
 
     if (isEnabled) {
-      BackgroundGeolocation.start();
+      await BackgroundGeolocation.start();
+      await BackgroundGeolocation.changePace(true);
+      setIsMoving(true);
     } else {
       BackgroundGeolocation.stop();
+      setIsMoving(false);
     }
 
     setEnabled(isEnabled);
@@ -128,7 +145,7 @@ const App: () => Node = () => {
         <View>
           <Switch onValueChange={() => onToggleEnabled()} value={enabled} />
         </View>
-          <Button title={"changePace (isMoving: " + isMoving + ")"} onPress={() => changePace()} />
+          <Button title={"changePace (isMoving: " + isMoving + ")"} onPress={() => onClickChangePace()} />
         <View>
 
         </View>
